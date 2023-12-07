@@ -30,13 +30,13 @@ string whichColor(string text)
     
 }
 
-bool invalidGame(map<string, int> game)
+map<string, int> checkMostCubes(map<string, int> round, string color, int newVal)
 {
-    if(game["red"] > 12 || game["green"] > 13 || game["blue"] >14)
+    if(round[color] < newVal)
     {
-        return true;
+        round[color] = newVal;
     }
-    else return false;
+    return round;
 }
 
 int main()
@@ -65,11 +65,12 @@ int main()
         }
         gameID = stoi(s);
         a = a.substr(pos+1);
+        gameResult["blue"]= 0;
+        gameResult["red"]= 0;
+        gameResult["green"]= 0;
         while(a != "")
         {
-            gameResult["blue"]= 0;
-            gameResult["red"]= 0;
-            gameResult["green"]= 0;
+            
             if(a.find(';') != string::npos)
             {
                 pos = a.find(";");
@@ -85,12 +86,7 @@ int main()
                     else
                     {
                         string entry = whichColor(word);   
-                        gameResult[entry] += tmpNum;
-                        if(invalidGame(gameResult))
-                        {
-                            goodGame = false;
-                            break;
-                        } 
+                        gameResult = checkMostCubes(gameResult, entry, tmpNum);
                     }
                 }
                
@@ -110,33 +106,15 @@ int main()
                     else
                     {
                         string entry = whichColor(word);   
-                        gameResult[entry] += tmpNum;
-                        if(invalidGame(gameResult))
-                        {
-                            goodGame = false;
-                            gameResult["blue"]= 0;
-                            gameResult["red"]= 0;
-                            gameResult["green"]= 0;
-                            break;
-                        }  
+                        gameResult = checkMostCubes(gameResult, entry, tmpNum);  
                     }
                 }
                 a = "";
-                if(invalidGame(gameResult))
-                {
-                    goodGame = false;
-                    gameResult["blue"]= 0;
-                    gameResult["red"]= 0;
-                    gameResult["green"]= 0;
-                    break;
-                }
             }
         }
-        if(goodGame)
-        {
-            //Game 3 is listed as valid despite it having a 15 red. Start there tomorrow. 
-            total += gameID;
-        }
+
+        total += gameResult["blue"] * gameResult["red"] * gameResult["green"];
+
     }
     printf("%i\n", total);
 }

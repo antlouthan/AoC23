@@ -19,6 +19,14 @@ AoC 2023 work
     7. Follow the same process as above starting at step 4.
 # Day 2
   ## Part 1: 
-  IN PROGRESS
+  1. Parsed each line of input, removing the word Game and grabbing the current GameID. 
+  2. Then looped through the rest of the line for the colors and their cube. 
+  3. Every pass I checked to see if the round was valid and flipped a bool if not. 
+  4. When reaching a semi-colon, reset the map. 
+  5. If a game was valid, add it's ID to total. 
+  ## Part 2: 
+  1. Similar break down at the beginning. Removed the reset of the map until each line was done. 
+  2. Simply checked if the current map's number of a color was the highest number. If not, replace with the higher number. 
+  3. At the end of each loop just add r*b*g values. 
 
 
