@@ -1,180 +1,108 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <vector>
-#include <sstream>
-#include <regex>
-using namespace std;
+#include <string>
+#include <set>
 
-/*
-    For each character we need to check:
-    UpLeft(-1,-1), Up(-1, 0), UpRight(-1, +1)
-    Left(0, -1), Right(0, +1)
-    DownLeft(+1, -1), Down(+1, 0), DownRight(+1, +1)
+struct Number {
+    int row, col;
+    int value;
+    std::set<std::pair<int, int>> adjacentStars;
 
-    If any of these is a symbol then the number needs to be added. 
-    If left or right is a number, we need to use it to build the number. 
+    Number(int r, int c, int val) : row(r), col(c), value(val) {}
 
-    If Row = 0, we don't need to check up. 
-    If Col = 0, we don't have to check left. 
-    If Row = MAXROWS, we don't need to check down. 
-    If Col = MAXCOL, we don't have to check right.  
-*/
-bool checkSpecialChar(char cell)
-{
-    if((cell >= 'a' && cell <= 'z') || (cell >= 'A' && cell <= 'Z')) {
+    void addStar(int starRow, int starCol) {
+        adjacentStars.insert({starRow, starCol});
+    }
+};
 
-        return false;
+bool isDigit(char ch) {
+    return ch >= '0' && ch <= '9';
+}
 
-    } else if(cell >= '0' && cell <= '9') {
+int extractNumber(const std::vector<std::string>& grid, int row, int& col) {
+    std::string numStr;
+    int startCol = col;
+    while (col < grid[0].size() && isDigit(grid[row][col])) {
+        numStr += grid[row][col];
+        col++;
+    }
+    return std::stoi(numStr);
+}
 
-        return false;
+void checkAdjacentStars(const std::vector<std::string>& grid, Number& number) {
+    int dir[8][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
 
-    } else {
+    // Calculate the length of the number
+    int length = std::to_string(number.value).length();
 
-        return true;
-
+    for (int digitIndex = 0; digitIndex < length; digitIndex++) {
+        for (auto& d : dir) {
+            int ni = number.row + d[0];
+            int nj = number.col + digitIndex + d[1];
+            if (ni >= 0 && ni < grid.size() && nj >= 0 && nj < grid[0].size() && grid[ni][nj] == '*') {
+                number.addStar(ni, nj);
+            }
+        }
     }
 }
 
-bool checkIfNumUsed(vector<vector<char>> g, int r, int c, int MaxR, int MaxC)
-{
-    if(r != 0) //  R can be checked negative
-    {
-        if( r != MaxR -1) //R can be checked positive
-        {
-            if( c != 0) //C can be checked negative
-            {
-                if(c != MaxC-1) //C can be checked positive. 
-                {
-                    //can check all directions
-                    if(checkSpecialChar(g[r-1][c-1]) || checkSpecialChar(g[r-1][c]) 
-                        || checkSpecialChar(g[r-1][c+1]) || checkSpecialChar(g[r][c-1]) 
-                        || checkSpecialChar(g[r][c+1]) || checkSpecialChar(g[r+1][c-1])
-                        || checkSpecialChar(g[r+1][c]) || checkSpecialChar(g[r+1][c+1]))
-                    {
-                        return true;
-                    }
+int main() {
+    std::ifstream inFile("input.txt");
+    if (!inFile.is_open()) {
+        std::cerr << "Error: Unable to open input file." << std::endl;
+        return 1;
+    }
+
+    std::vector<std::string> grid;
+    std::string line;
+    while (std::getline(inFile, line)) {
+        grid.push_back(line);
+    }
+    inFile.close();
+
+    std::vector<Number> numbers;
+
+    for (int i = 0; i < grid.size(); i++) {
+        for (int j = 0; j < grid[i].size();) {
+            if (isDigit(grid[i][j])) {
+                int startCol = j;
+                int num = extractNumber(grid, i, j);
+                Number number(i, startCol, num);
+                checkAdjacentStars(grid, number);
+                numbers.push_back(number);
+            } else {
+                j++;
+            }
+        }
+    }
+
+    long long totalGearRatio = 0;
+    std::set<std::pair<int, int>> processedPairs;
+
+    for (int i = 0; i < numbers.size(); i++) {
+        for (int j = i + 1; j < numbers.size(); j++) {
+            // Check if the pair (i, j) has already been processed
+            if (processedPairs.find({i, j}) != processedPairs.end()) {
+                continue;
+            }
+
+            // Check for shared star positions
+            for (const auto& starPos : numbers[i].adjacentStars) {
+                if (numbers[j].adjacentStars.find(starPos) != numbers[j].adjacentStars.end()) {
+                    totalGearRatio += static_cast<long long>(numbers[i].value) * numbers[j].value;
+                    processedPairs.insert({i, j});
+                    break; // Break to avoid double counting for multiple shared stars
                 }
-                else //C cannot be checked positive, r can be checked negative and positive
-                {
-                    if(checkSpecialChar(g[r-1][c-1]) || checkSpecialChar(g[r-1][c]) 
-                        || checkSpecialChar(g[r][c-1]) || checkSpecialChar(g[r+1][c-1])
-                        || checkSpecialChar(g[r+1][c]))
-                    {
-                        return true;
-                    }
-                }  
-            }
-            else //c cannot be checked negative(c = 0), r can be checked negative and positive
-            {
-                if(c != MaxC-1) // c can be checked positive
-                    {
-                        if(checkSpecialChar(g[r-1][c]) || checkSpecialChar(g[r-1][c+1]) 
-                        || checkSpecialChar(g[r][c+1]) || checkSpecialChar(g[r+1][c]) 
-                        || checkSpecialChar(g[r+1][c+1]))
-                        {
-                            return true;
-                        }
-                    }
-                    else // c cannot be checked positive
-                    {
-                        if(checkSpecialChar(g[r-1][c]) || checkSpecialChar(g[r+1][c]))
-                        {
-                            return true;
-                        }
-                    }  
-            }
-        }
-        else // R Cannot be checked positive
-        {
-            if( c != 0) //C can be checked negative
-            {
-                if(c != MaxC-1) //C can be checked positive. 
-                {
-                    //C can be positive and negative, R cannot be positive
-                    if(checkSpecialChar(g[r-1][c-1]) || checkSpecialChar(g[r-1][c]) 
-                        || checkSpecialChar(g[r-1][c+1]) || checkSpecialChar(g[r][c-1]) 
-                        || checkSpecialChar(g[r][c+1]))
-                    {
-                        return true;
-                    }
-                }
-                else //C cannot be checked positive, r cannot be positive
-                {
-                    if(checkSpecialChar(g[r-1][c-1]) || checkSpecialChar(g[r-1][c]) 
-                        || checkSpecialChar(g[r][c-1]))
-                    {
-                        return true;
-                    }
-                }  
-            }
-            else //c cannot be checked negative(c = 0), r can be checked negative
-            {
-                if(c != MaxC-1) // c can be checked positive
-                    {
-                        if(checkSpecialChar(g[r-1][c]) || checkSpecialChar(g[r-1][c+1]) 
-                        || checkSpecialChar(g[r][c+1]))
-                        {
-                            return true;
-                        }
-                    }
-                    else // c cannot be checked positive
-                    {
-                        if(checkSpecialChar(g[r-1][c]))
-                        {
-                            return true;
-                        }
-                    }  
             }
         }
     }
+
+    std::cout << "Total sum of gear ratios: " << totalGearRatio << std::endl;
+
+    return 0;
 }
-/*
-    Need to recheck the logic for checking for special characters. 
-    Once that's confirmed we can start with the rest: 
-    1. If we have a digit, we add it to the temp num. 
-    2. if a number is touching special character, then the whole temp num should be added to the total. 
-
-    something seems off here though....need to think about this .
-*/
-main()
-{
-    std::ifstream inFile("file");
-    string line;
-    string currNum;
-    vector<vector<char>> grid;
-    int MAXROWS, MAXCOL;
-    int col = 0, rows = 0, int total = 0;
-    if(inFile.is_open())
-    {
-        getline(inFile, line);
-        MAXCOL = line.length();
-        MAXROWS = std::count(std::istreambuf_iterator<char>(inFile), 
-                std::istreambuf_iterator<char>(), '\n');
-        inFile.close();
-    }
-    while(!inFile.eof())
-    {
-        getline(inFile, line);
-        for(char c : line)
-        {
-            grid[rows][col] = c;
-            col++;
-        }
-        rows++;
-        col = 0;
-    }
-    for(int i = 0; i < MAXROWS; i++)
-    {
-        for(int j = 0; j < MAXROWS; j++)
-        {
-            if(isdigit(grid[i][j]))
-            {
-                currNum += grid[i][j];
-            }
-        }
-    }
 
 
-}
+
+
